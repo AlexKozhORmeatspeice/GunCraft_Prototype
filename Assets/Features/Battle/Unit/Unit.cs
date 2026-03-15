@@ -142,7 +142,7 @@ public class Unit : MonoBehaviour
 
     public void ChangeHP(float changeHP)
     {
-        if(Type == UnitType.Player && Time.time - lastTimeDamage < timeBetweenDamage)
+        if(Type == UnitType.Player && changeHP < 0 && Time.time - lastTimeDamage < timeBetweenDamage)
         {
             return;
         }

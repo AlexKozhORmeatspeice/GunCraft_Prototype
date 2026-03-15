@@ -41,7 +41,7 @@ public class ChestSpawner : MonoBehaviour
         chestsSpawned = 0;
         foreach(var chest in activeChests)
         {
-            Destroy(chest);
+            Destroy(chest.gameObject);
         }
 
         activeChests.Clear();

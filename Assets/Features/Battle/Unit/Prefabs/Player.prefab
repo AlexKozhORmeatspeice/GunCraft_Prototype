@@ -315,7 +315,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   unitType: 0
-  maxHP: 500
+  maxHP: 300
   playerUI: {fileID: 0}
   enemyLayerMask:
     serializedVersion: 2

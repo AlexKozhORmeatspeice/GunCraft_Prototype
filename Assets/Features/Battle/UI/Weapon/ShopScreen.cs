@@ -23,7 +23,7 @@ public class ShopScreen : MonoBehaviour
             if(EnemySpawner.Instance != null)
                 EnemySpawner.Instance.ClearAllEnemy();
                 
-            playerUnit.ChangeHP(100);
+            playerUnit.ChangeHP(300);
             playerUnit.GetComponent<UpgradeComponent>().ClearAllUpgrades();
 
             Time.timeScale = 0.0f;

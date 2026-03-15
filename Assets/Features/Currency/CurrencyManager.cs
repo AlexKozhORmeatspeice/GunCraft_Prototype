@@ -14,6 +14,7 @@ public class CurrencyManager : MonoBehaviour
 
     private int currentMoney;
     private int currentRunMoney;
+    
 
     public void SetBase()
     {

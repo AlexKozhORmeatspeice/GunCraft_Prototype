@@ -31,10 +31,12 @@ public class Chest : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D collision)
     {
+        Debug.Log("got trigger");
         if(CurrencyManager.instance.CurrentRunMoney < price)
         {
             return;
         }
+        Debug.Log("got money");
 
         Unit unit = collision.GetComponentInChildren<Unit>();
 
