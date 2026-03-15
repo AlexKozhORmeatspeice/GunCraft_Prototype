@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23a4d8b4f5d08154bbcb5dc7a9645c0b, type: 3}
+  m_Name: Distance
+  m_EditorClassIdentifier: 
+  id: Up_Dist
+  name: 
+  isItemUpgarde: 1
+  linkToItem: {fileID: 11400000, guid: ae7dd5c496e8f664e97cc0cd62c18550, type: 2}
+  priceDown: 1
+  boostHP: 0
+  addHP: 0
+  boostGold: 1
+  sprite: {fileID: 21300000, guid: 1d4b32b6362052e4897ce01c1f787bab, type: 3}

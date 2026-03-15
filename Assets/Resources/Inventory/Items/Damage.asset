@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dc4cffb81ed8754e8157bcac088260b, type: 3}
+  m_Name: Damage
+  m_EditorClassIdentifier: 
+  id: Item_BaseDmg
+  name: "\u041C\u043E\u0434\u0443\u043B\u044C \u0423\u0440\u043E\u043D\u0430"
+  desc: "\u041F\u0440\u0438\u0431\u0430\u0432\u043B\u044F\u0435\u0442 +10 \u0443\u0440\u043E\u043D\u0430"
+  BuffDmg:
+  - 10
+  - 16
+  - 22
+  BuffDmgKoef:
+  - 1
+  BuffFireDmg:
+  - 0
+  BuffElectroDmg:
+  - 0
+  BuffWaterDmg:
+  - 0
+  BuffSpeedKoef:
+  - 0.9
+  - 0.7
+  - 1.1
+  AdditionBulletsCount: 00000000
+  critChance:
+  - 0
+  critModifiactor:
+  - 0
+  shootThroughCount: 00000000
+  shootRate:
+  - -40
+  - -48
+  - -56
+  ammoAmount: fbfffffffefffffffeffffff
+  reloadTime:
+  - 0.4
+  - 0.3
+  - 0.2
+  price: 220
+  canTakeWhenOnWeapon: 1
+  canUpgrade: 1
+  icon: {fileID: 21300000, guid: 9763ae660d2e6854da32a33d3312fcf7, type: 3}
+  CurrentLevel: 0

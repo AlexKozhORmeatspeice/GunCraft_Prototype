@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23a4d8b4f5d08154bbcb5dc7a9645c0b, type: 3}
+  m_Name: Electro
+  m_EditorClassIdentifier: 
+  id: Up_Electro
+  name: 
+  isItemUpgarde: 1
+  linkToItem: {fileID: 11400000, guid: 6e6641cb88548074db1cd9acf23eeb95, type: 2}
+  priceDown: 1
+  boostHP: 0
+  addHP: 0
+  boostGold: 1
+  sprite: {fileID: 21300000, guid: d818d21bf91d8f34e8233e8e415d7500, type: 3}
