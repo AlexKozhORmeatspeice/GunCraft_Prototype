@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class ChestSpawner : MonoBehaviour
+public class ChestSpawner : NetworkBehaviour
 {
     public static ChestSpawner instance;
 
@@ -27,16 +28,43 @@ public class ChestSpawner : MonoBehaviour
     private int chestsSpawned = 0;
     private bool isSpawning = false;
 
+    private bool isCanSpawn = false;
+
     public float discountModificator = 1.0f;
     
     private void Awake()
     {
         discountModificator = 1.0f;
         instance = this;
+        isCanSpawn = false;
+    }
+
+    private void Start()
+    {
+        GameStateManager.Instance.onStartGamePlaying += SetBase;
+        GameStateManager.Instance.onStartGameOver += SetCantSpawn;
+    }
+
+    void OnDestroy()
+    {
+        GameStateManager.Instance.onStartGamePlaying -= SetBase;
+        GameStateManager.Instance.onStartGameOver -= SetCantSpawn;
+    }
+
+    private void SetCanSpawn()
+    {
+        isCanSpawn = true;
+    }
+
+    private void SetCantSpawn()
+    {
+        isCanSpawn = false;
     }
 
     public void SetBase()
     {
+        isCanSpawn = true;
+
         discountModificator = 1.0f;
         chestsSpawned = 0;
         foreach(var chest in activeChests)
@@ -49,6 +77,11 @@ public class ChestSpawner : MonoBehaviour
     
     private void Update()
     {
+        if(!IsServer || !isCanSpawn)
+        {
+            return;
+        }
+
         // Очищаем список от уничтоженных сундуков
         List<Chest> destroyedChests = new List<Chest>();
         foreach (var chest in activeChests)
@@ -89,13 +122,19 @@ public class ChestSpawner : MonoBehaviour
         
         Vector3 spawnPosition = GetRandomNavMeshPosition();
         spawnPosition.z = -6.0f;
-        
+
         // Создаем сундук
-        Chest newChest = Instantiate(chestPrefab, spawnPosition, Quaternion.identity);
-        
         // Рассчитываем цену для нового сундука
         int chestPrice = CalculatePrice();
-        newChest.price = chestPrice;
+        SpawnChestClientRpc(spawnPosition, chestPrice);
+    }
+
+    [ClientRpc]
+    private void SpawnChestClientRpc(Vector3 pos, int price)
+    {
+        Chest newChest = Instantiate(chestPrefab, pos, Quaternion.identity);
+        
+        newChest.price = price;
         
         // Подписываемся на событие открытия сундука
         newChest.OnChestOpened += OnChestOpened;
@@ -220,8 +259,6 @@ public class ChestSpawner : MonoBehaviour
         {
             Debug.Log("Сундук открыт, освобождается место для нового");
         }
-        
-        // Сундук будет удален из списка в Update при проверке на null
     }
     
     // Публичные методы для управления спавнером

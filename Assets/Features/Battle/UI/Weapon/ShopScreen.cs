@@ -10,30 +10,27 @@ public class ShopScreen : MonoBehaviour
     [SerializeField] private WeaponScreen weaponScreen;
     [SerializeField] private ChooseShopScreen chooseShopScreen;
     [SerializeField] private TMP_Text currentMoneyText;
-    [SerializeField] private Unit playerUnit;
+    private Unit playerUnit;
+
+    private void Awake()
+    {
+        UnitManager.onSetLocalPlayer += SetPlayer;
+        SetVisible(false);
+    }
+
+    private void OnDestroy()
+    {
+        UnitManager.onSetLocalPlayer -= SetPlayer;
+    }
+
+    private void SetPlayer(Unit unit)
+    {
+        playerUnit = unit;
+    }
 
     public void SetVisible(bool visible)
     {
         gameObject.SetActive(visible);
-        
-        if(visible)
-        {
-            CurrencyManager.instance.CurrentRunMoney = 0;
-
-            if(EnemySpawner.Instance != null)
-                EnemySpawner.Instance.ClearAllEnemy();
-                
-            playerUnit.ChangeHP(300);
-            playerUnit.GetComponent<UpgradeComponent>().ClearAllUpgrades();
-
-            Time.timeScale = 0.0f;
-            Cursor.visible = true;
-        }
-        else
-        {
-            Time.timeScale = 1.0f;
-            Cursor.visible = false;
-        }
 
         if(visible)
         {

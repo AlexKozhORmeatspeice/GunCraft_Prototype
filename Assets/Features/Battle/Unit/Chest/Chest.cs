@@ -31,8 +31,7 @@ public class Chest : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D collision)
     {
-        Debug.Log("got trigger");
-        if(CurrencyManager.instance.CurrentRunMoney < price)
+        if(CurrencyManager.instance.CurrentMoney < price)
         {
             return;
         }
@@ -42,7 +41,7 @@ public class Chest : MonoBehaviour
 
         if(unit && unit.Type == UnitType.Player)
         {
-            CurrencyManager.instance.CurrentRunMoney -= price;
+            CurrencyManager.instance.CurrentMoney -= price;
 
             SpawnItem();
             OnChestOpened?.Invoke(this);
@@ -59,30 +58,6 @@ public class Chest : MonoBehaviour
 
         ChestItem chestItem = GameObject.Instantiate(itemPrefab, transform.position + dir * dist, Quaternion.identity);
 
-        chestItem.SetUpgrade(GetAcceptUpgrade().OrderBy(x => Random.Range(0.0f, 1.0f)).FirstOrDefault()); // Устанавливаем случайный апгрейд
-    }
-
-    private List<Upgrade> GetAcceptUpgrade()
-    {
-        List<Upgrade> nowUpgrades = new();
-        UnitShoot unitShoot = UnitManager.instance.player.GetComponent<UnitShoot>();
-
-        foreach(var upgrade in upgrades)
-        {
-            if(upgrade.isItemUpgarde)
-            {
-                if(unitShoot.treeItems.Contains(upgrade.linkToItem))
-                {
-                    nowUpgrades.Add(upgrade);
-                }
-            }
-            else
-            {
-                nowUpgrades.Add(upgrade);
-            }
-        }
-
-
-        return nowUpgrades;
+        chestItem.SetUpgrade(upgrades.OrderBy(x => Random.Range(0.0f, 1.0f)).FirstOrDefault()); // Устанавливаем случайный апгрейд
     }
 }

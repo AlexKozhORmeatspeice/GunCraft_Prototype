@@ -1,5 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
+using System.Collections; using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 public class Bullet : MonoBehaviour
@@ -10,6 +10,9 @@ public class Bullet : MonoBehaviour
     private float startTime = -100.0f;
 
     private int hitCount = 1;
+
+    private NetworkObject networkObject;
+
 
     public void SetConfig(BulletData bulletData)
     {

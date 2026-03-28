@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using Unity.Netcode;
 using UnityEngine;
 
 public class BulletData
@@ -92,6 +93,64 @@ public class BulletData
     }
 }
 
+[System.Serializable]
+public struct BulletDataSerialized : INetworkSerializable
+{
+    public float lifetime;
+    public float speed;
+    public float damage;
+    public float fire;
+    public float water;
+    public float electro;
+    public float critChance;
+    public float critModificator;
+    public int shootThroughCount;
+    public int maxAmmo;
+    public float shootRateBulPerMin;
+    public float reloadTime;
+    public int enemyType; // Enum как int
+    public Vector3 moveDir;
+    
+    public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+    {
+        serializer.SerializeValue(ref lifetime);
+        serializer.SerializeValue(ref speed);
+        serializer.SerializeValue(ref damage);
+        serializer.SerializeValue(ref fire);
+        serializer.SerializeValue(ref water);
+        serializer.SerializeValue(ref electro);
+        serializer.SerializeValue(ref critChance);
+        serializer.SerializeValue(ref critModificator);
+        serializer.SerializeValue(ref shootThroughCount);
+        serializer.SerializeValue(ref maxAmmo);
+        serializer.SerializeValue(ref shootRateBulPerMin);
+        serializer.SerializeValue(ref reloadTime);
+        serializer.SerializeValue(ref enemyType);
+        serializer.SerializeValue(ref moveDir);
+    }
+    
+    public BulletData ToBulletData()
+    {
+        BulletData data = new BulletData();
+        data.lifetime = lifetime;
+        data.speed = speed;
+        data.damage = damage;
+        data.fire = fire;
+        data.water = water;
+        data.electro = electro;
+        data.critChance = critChance;
+        data.critModificator = critModificator;
+        data.shootThroughCount = shootThroughCount;
+        data.maxAmmo = maxAmmo;
+        data.shootRateBulPerMin = shootRateBulPerMin;
+        data.reloadTime = reloadTime;
+        data.enemyType = (UnitType)enemyType;
+        data.dir = moveDir;
+
+        return data;
+    }
+}
+
 public class WeaponTreeNode
 {
     public WeaponTreeNode parent;
@@ -105,7 +164,6 @@ public class UnitShoot : MonoBehaviour
 {
     [SerializeField] private Bullet bulletPrefab;
     [SerializeField] private Inventory inventory;
-    [SerializeField] private UnitMovement unitMovement;
     [SerializeField] private UnitType enemyType;
     
     [Header("Settings")]
@@ -124,9 +182,12 @@ public class UnitShoot : MonoBehaviour
     private bool needReload = false;
 
     private float reloadTime = 0;
+    private Vector3 rightShootDir;
 
     void Awake()
     {
+        rightShootDir = transform.forward;
+
         needReload = false;
         nowAmmo = baseMaxAmmo;
 
@@ -138,6 +199,8 @@ public class UnitShoot : MonoBehaviour
 
     public void Shoot(Vector3 dir)
     {
+        rightShootDir = new Vector3(-dir.y, dir.x, dir.z);
+
         var bullets = GetBullets();
 
         float step = 0.5f;
@@ -167,7 +230,7 @@ public class UnitShoot : MonoBehaviour
                 continue;
             }
 
-            //Проверки на то можем ли мы стрелять этой пулей
+            //Проверки на скорость стрельбы
             if(Time.time - bullet.lastShootTime < 60.0f / bullet.shootRateBulPerMin)
             {
                 continue;
@@ -177,17 +240,16 @@ public class UnitShoot : MonoBehaviour
             bullet.dir = dir;
             bullet.currentAmmo--;
 
-            CreateBullet(bullet, step * (i - bullets.Count / 2));
+            CreateBullet(bullet, step * (i - bullets.Count / 2), dir);
         }
     }
 
-    private Bullet CreateBullet(BulletData data, float offsetX)
+    private void CreateBullet(BulletData bulletData, float offsetX, Vector3 dir)
     {
-        Bullet bullet = GameObject.Instantiate(bulletPrefab, transform.position + unitMovement.GetRightDir() * offsetX, Quaternion.identity);
+        Vector3 pos = transform.position + rightShootDir * offsetX;
+        Bullet bullet = GameObject.Instantiate(bulletPrefab, pos, Quaternion.identity);
 
-        bullet.SetConfig(data);
-
-        return bullet;
+        bullet.SetConfig(bulletData);
     }
 
     private List<BulletData> GetBullets()

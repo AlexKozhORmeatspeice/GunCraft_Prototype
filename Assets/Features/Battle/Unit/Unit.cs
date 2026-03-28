@@ -2,8 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public enum UnitType
 {
@@ -94,9 +95,11 @@ public class Unit : MonoBehaviour
     [SerializeField] private float stunDamage = 25.0f;
     [SerializeField] private float stunTime = 1.0f;
     [SerializeField] private float stunRadius = 4.0f;
+    [SerializeField] private bool isMain = false;
 
     private const float timeBetweenDamage = 0.1f;
     private float lastTimeDamage = -999f;
+
 
     public EnemySetting enemySetting;
 
@@ -122,8 +125,11 @@ public class Unit : MonoBehaviour
     public bool IsStunned => isStunned;
     public bool NoEye => noEye;
 
+    private NetworkObject networkObject;
+
     void Start()
     {
+        networkObject = GetComponent<NetworkObject>();
         hp = maxHP;
         effectProcessor = StartCoroutine(ProcessEffects());
     }
@@ -331,7 +337,7 @@ public class Unit : MonoBehaviour
             if (enemy != null)
             {
                 // Пар наносит 10 урона за стак
-                enemy.ChangeHP(steamDamage * reactionCount);
+                enemy.ChangeHP(-steamDamage * reactionCount);
                 
                 // TODO: Здесь нужно реализовать логику тумана (блокировка видимости)
                 enemy.SetNoEye(steamTime);
@@ -527,38 +533,17 @@ public class Unit : MonoBehaviour
             RemoveEffect(effect);
         }
 
-        if (unitType == UnitType.Player)
+        if(isMain)
         {
-            playerUI?.OpenShop();
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             return;
         }
-        
+
         Destroy(gameObject);
     }
 
-    // Для отладки
-    void OnGUI()
+    public NetworkObject GetNetworkObject()
     {
-        if (activeEffects.Count > 0 && Application.isPlaying)
-        {
-            GUILayout.BeginArea(new Rect(10, 10, 300, 400));
-            GUILayout.Label($"=== {gameObject.name} ===");
-            GUILayout.Label($"HP: {hp}/{maxHP}");
-            GUILayout.Label($"Может стрелять: {CanShoot}");
-            GUILayout.Label($"Оглушен: {isStunned}");
-            GUILayout.Label("Активные эффекты:");
-            
-            foreach (var effect in activeEffects)
-            {
-                string timeInfo = effect.element == ElementType.Lightning ? "мгновенно" : 
-                                 effect.element == ElementType.Explosion ? "мгновенно" :
-                                 effect.element == ElementType.StunArea ? "1с" :
-                                 effect.timeRemaining.ToString("F1") + "с";
-                
-                GUILayout.Label($"  {effect.element}: {effect.stacks} стаков ({timeInfo})");
-            }
-            
-            GUILayout.EndArea();
-        }
+        return networkObject;
     }
 }

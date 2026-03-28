@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Animations;
 
 public class AIController : MonoBehaviour
 {
@@ -30,11 +31,16 @@ public class AIController : MonoBehaviour
     [SerializeField] private float wanderInterval = 3f; // Интервал смены направления блуждания
     [SerializeField] private float wanderStopDuration = 2f; // Длительность остановки между блужданием
     
+    [Header("Target Acquisition")]
+    [SerializeField] private float targetUpdateInterval = 1f; // Интервал обновления цели
+    [SerializeField] private bool prioritizeClosestTarget = true; // Приоритизировать ближайшую цель
+    
     // NavMesh компоненты
     private NavMeshAgent navMeshAgent;
     private bool isNavMeshAgentEnabled = false;
 
     private Vector3 lastTargetPosition;
+    private float targetUpdateTimer;
     
     // Состояния AI
     private enum AIState
@@ -77,13 +83,13 @@ public class AIController : MonoBehaviour
         // Инициализация NavMesh
         InitializeNavMesh();
         
-        // Ищем цель если не назначена
-        if (target == null)
-            FindTarget();
+        // Ищем цель
+        FindNearestPlayerUnit();
             
         // Инициализация таймеров
         wanderTimer = wanderInterval;
         wanderStopTimer = 0f;
+        targetUpdateTimer = 0f;
     }
     
     private void InitializeNavMesh()
@@ -129,10 +135,13 @@ public class AIController : MonoBehaviour
         
         if(unit.IsStunned) return;
         
+        // Периодически обновляем цель
+        UpdateTargetPeriodically();
+        
         // Проверяем наличие цели
         if (target == null)
         {
-            FindTarget();
+            FindNearestPlayerUnit();
             if (target == null)
             {
                 Wander();
@@ -157,14 +166,94 @@ public class AIController : MonoBehaviour
         wanderTimer -= Time.deltaTime;
         wanderStopTimer -= Time.deltaTime;
         searchTimer -= Time.deltaTime;
+        targetUpdateTimer -= Time.deltaTime;
     }
     
-    private void FindTarget()
+    private void UpdateTargetPeriodically()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-
-        if (player != null)
-            target = player.transform;
+        if (targetUpdateTimer <= 0f)
+        {
+            FindNearestPlayerUnit();
+            targetUpdateTimer = targetUpdateInterval;
+        }
+    }
+    
+    private void FindNearestPlayerUnit()
+    {
+        // Находим все объекты с компонентом Unit
+        Unit[] allUnits = FindObjectsOfType<Unit>();
+        
+        Unit nearestPlayer = null;
+        float nearestDistance = float.MaxValue;
+        
+        // Перебираем все юниты в поисках игроков
+        foreach (Unit potentialTarget in allUnits)
+        {
+            // Пропускаем себя
+            if (potentialTarget == unit) continue;
+            
+            // Проверяем, является ли юнит игроком
+            if (potentialTarget.Type == UnitType.Player)
+            {
+                float distance = Vector2.Distance(transform.position, potentialTarget.transform.position);
+                
+                // Проверяем, находится ли цель в радиусе обнаружения
+                if (distance <= detectionRange && distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearestPlayer = potentialTarget;
+                }
+            }
+        }
+        
+        // Если нашли игрока, устанавливаем его как цель
+        if (nearestPlayer != null)
+        {
+            target = nearestPlayer.transform;
+            lastKnownTargetPosition = target.position;
+            
+            if (prioritizeClosestTarget)
+            {
+                // Опционально: выводим информацию о найденной цели
+                // Debug.Log($"AI {gameObject.name} found player {target.name} at distance {nearestDistance}");
+            }
+        }
+        else if (target != null)
+        {
+            // Если не нашли игроков, но цель все еще существует, проверяем, не умерла ли она
+            Unit targetUnit = target.GetComponent<Unit>();
+            if (targetUnit == null || targetUnit.Type != UnitType.Player)
+            {
+                target = null;
+            }
+        }
+        
+        // Если не нашли игроков в радиусе обнаружения, ищем любого игрока вне радиуса
+        if (target == null && allUnits.Length > 0)
+        {
+            foreach (Unit potentialTarget in allUnits)
+            {
+                if (potentialTarget == unit) continue;
+                
+                if (potentialTarget.Type == UnitType.Player)
+                {
+                    float distance = Vector2.Distance(transform.position, potentialTarget.transform.position);
+                    
+                    if (distance < nearestDistance)
+                    {
+                        nearestDistance = distance;
+                        nearestPlayer = potentialTarget;
+                    }
+                }
+            }
+            
+            if (nearestPlayer != null)
+            {
+                target = nearestPlayer.transform;
+                lastKnownTargetPosition = target.position;
+                // Debug.Log($"AI {gameObject.name} found distant player {target.name}");
+            }
+        }
     }
     
     private void CheckLineOfSight()
@@ -194,7 +283,8 @@ public class AIController : MonoBehaviour
             SetState(AIState.Wandering);
             return;
         }
-        
+
+        // Проверяем, жива ли цель
         float distanceToTarget = Vector2.Distance(transform.position, target.position);
         
         if (hasLineOfSight)
@@ -219,12 +309,12 @@ public class AIController : MonoBehaviour
             if (lastKnownTargetPosition != Vector3.zero && searchTimer > 0)
             {
                 // Ищем цель в последней известной позиции
-                SetState(AIState.Searching);
+                SetState(AIState.Approaching);
             }
             else
             {
                 // Цель потеряна надолго - возвращаемся к блужданию
-                SetState(AIState.Wandering);
+                SetState(AIState.Approaching);
                 lastKnownTargetPosition = Vector3.zero;
             }
         }

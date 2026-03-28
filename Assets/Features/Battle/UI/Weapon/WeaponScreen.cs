@@ -1,11 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Multiplayer.Tools.NetStats;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class WeaponScreen : MonoBehaviour
 {
-    [SerializeField] private UnitShoot shootComp;
     [SerializeField] private BuyNewSlotButton newSlotButtonPrefab;
     [SerializeField] private Transform vertContainer; // Префаб горизонтального контейнера
     [SerializeField] private Transform horrContainer; // Префаб вертикального контейнера
@@ -15,11 +15,18 @@ public class WeaponScreen : MonoBehaviour
     [SerializeField] private MouseMoveArea mouseMoveArea;
     [SerializeField] private float additionalSlotPrice = 100;
 
+    private UnitShoot shootComp;
     private List<BuyNewSlotButton> buyNewSlots = new();
 
     private Dictionary<WeaponTreeNode, GameObject> nodeToContainerMap = new();
     private Dictionary<WeaponTreeNode, Slot> nodeToSlotMap = new();
     private Dictionary<Slot, WeaponTreeNode> slotToNodeMap = new();
+
+
+    public void SetShootComp(UnitShoot shoot)
+    {
+        shootComp = shoot;
+    }
 
     public void Show()
     {

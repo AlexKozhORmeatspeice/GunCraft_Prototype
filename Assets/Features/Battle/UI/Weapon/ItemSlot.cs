@@ -34,7 +34,7 @@ public class ItemSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public Item data;
     
-    protected virtual void Awake()
+    private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
@@ -46,7 +46,7 @@ public class ItemSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
     }
     
-    protected virtual void Start()
+    private void Start()
     {
         // Находим главный Canvas
         mainCanvas = GetComponentInParent<Canvas>();

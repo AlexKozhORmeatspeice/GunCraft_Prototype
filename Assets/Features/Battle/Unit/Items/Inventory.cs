@@ -1,10 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using NUnit.Framework;
+using Unity.Netcode;
 using UnityEngine;
 
 public class Inventory : MonoBehaviour
 {
+    [SerializeField] private List<string> baseItems = new();
+
     private const string itemsPath = "Inventory/Items";
     private List<Item> items;
 
@@ -19,23 +23,14 @@ public class Inventory : MonoBehaviour
         InitBaseInventory();
     }
 
-    void Start()
-    {
-        
-    }
-
     private void InitBaseInventory()
     {
         currentItems.Clear();
 
-        currentItems.Add(GetItem(ItemAPI.Item_BaseDmg));
-        currentItems.Add(GetItem(ItemAPI.Item_BaseDmg));
-
-        currentItems.Add(GetItem(ItemAPI.Item_Distance));
-        currentItems.Add(GetItem(ItemAPI.Item_Distance));
-
-        currentItems.Add(GetItem(ItemAPI.Item_ShootRate));
-        currentItems.Add(GetItem(ItemAPI.Item_ShootRate));
+        foreach (var item in baseItems)
+        {
+            currentItems.Add(GetItem(item));
+        }
     }
 
     public Item GetItem(string id)

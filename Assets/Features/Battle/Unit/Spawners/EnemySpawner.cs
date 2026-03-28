@@ -5,6 +5,7 @@ using System;
 using Random = UnityEngine.Random;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Netcode;
 
 [Serializable]
 public class EnemySetting
@@ -26,10 +27,10 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private List<EnemySetting> enemyTypes;
     
     [Header("Spawn Settings")]
-    [SerializeField] private int initialMaxEnemies = 5;
-    [SerializeField] private int maxEnemiesLimit = 30;
-    [SerializeField] private int killsToReachMax = 100; // Сколько убийств нужно для достижения максимума
-    [SerializeField] private float spawnCheckInterval = 0.5f;
+    [SerializeField] private float initialSpawnDelay = 5f; // Время до начала спауна
+    [SerializeField] private float initialSpawnInterval = 10f; // Начальный интервал между спаунами
+    [SerializeField] private float minSpawnInterval = 1f; // Минимальный интервал между спаунами
+    [SerializeField] private float spawnIntervalDecayRate = 0.95f; // Коэффициент уменьшения интервала (экспонента)
     [SerializeField] private bool spawnEnabled = true;
     
     [Header("Distance Settings")]
@@ -45,8 +46,9 @@ public class EnemySpawner : MonoBehaviour
     
     private Camera mainCamera;
     private Transform playerTransform;
-    private int totalKills = 0;
-    private int currentMaxEnemies;
+    private float currentSpawnInterval;
+    private float lastSpawnTime;
+    private bool hasStartedSpawning = false;
     private List<Unit> activeEnemies = new List<Unit>();
 
     public Action<Unit> onCreateNewEnemy;
@@ -81,11 +83,13 @@ public class EnemySpawner : MonoBehaviour
             Debug.LogWarning("Player not found! Distance checks will be skipped.");
         }
         
-        currentMaxEnemies = initialMaxEnemies;
+        // Устанавливаем начальный интервал спауна
+        currentSpawnInterval = initialSpawnInterval;
         
         // Проверяем наличие префабов
         ValidateEnemyTypes();
         
+        // Запускаем спаун менеджер
         StartCoroutine(SpawnManager());
     }
 
@@ -106,66 +110,67 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    void UpdateMaxEnemiesOnKill()
+    IEnumerator SpawnManager()
     {
-        totalKills++;
+        // Ждем начальную задержку
+        if (showDebugVisuals)
+        {
+            Debug.Log($"Waiting {initialSpawnDelay} seconds before starting spawn...");
+        }
         
-        // Рассчитываем новое максимальное количество на основе убийств
-        float t = Mathf.Clamp01((float)totalKills / killsToReachMax);
-        currentMaxEnemies = Mathf.RoundToInt(Mathf.Lerp(initialMaxEnemies, maxEnemiesLimit, t));
+        yield return new WaitForSeconds(initialSpawnDelay);
+        
+        hasStartedSpawning = true;
+        lastSpawnTime = Time.time;
         
         if (showDebugVisuals)
         {
-            Debug.Log($"Total kills: {totalKills}, Max enemies increased to: {currentMaxEnemies}");
+            Debug.Log($"Spawning started! Initial interval: {currentSpawnInterval:F2} seconds");
         }
-    }
-
-    IEnumerator SpawnManager()
-    {
-        // Небольшая задержка перед началом спауна
-        yield return new WaitForSeconds(1f);
         
         while (true)
         {
             if (!spawnEnabled)
             {
-                yield return new WaitForSeconds(spawnCheckInterval);
+                yield return new WaitForSeconds(1f);
                 continue;
             }
             
             // Очищаем список от уничтоженных врагов
             activeEnemies.RemoveAll(enemy => enemy == null);
             
-            // Если врагов меньше максимума, спауним недостающих
-            if (activeEnemies.Count < currentMaxEnemies)
+            // Проверяем, можно ли спаунить нового врага
+            if (hasStartedSpawning && Time.time - lastSpawnTime >= currentSpawnInterval)
             {
-                int enemiesToSpawn = currentMaxEnemies - activeEnemies.Count;
+                bool spawned = false;
                 
-                for (int i = 0; i < enemiesToSpawn; i++)
+                for (int attempt = 0; attempt < maxSpawnAttemptsPerEnemy; attempt++)
                 {
-                    bool spawned = false;
-                    
-                    for (int attempt = 0; attempt < maxSpawnAttemptsPerEnemy; attempt++)
+                    if (TrySpawnEnemy())
                     {
-                        if (TrySpawnEnemy())
-                        {
-                            spawned = true;
-                            break;
-                        }
+                        spawned = true;
+                        lastSpawnTime = Time.time;
                         
-                        yield return new WaitForSeconds(0.1f);
+                        // Уменьшаем интервал спауна по экспоненте
+                        currentSpawnInterval = Mathf.Max(minSpawnInterval, currentSpawnInterval * spawnIntervalDecayRate);
+                        
+                        if (showDebugVisuals)
+                        {
+                            Debug.Log($"Enemy spawned! New spawn interval: {currentSpawnInterval:F2} seconds");
+                        }
+                        break;
                     }
                     
-                    if (!spawned && showDebugVisuals)
-                    {
-                        Debug.LogWarning($"Failed to spawn enemy after {maxSpawnAttemptsPerEnemy} attempts");
-                    }
-                    
-                    yield return new WaitForSeconds(0.2f);
+                    yield return new WaitForSeconds(0.1f);
+                }
+                
+                if (!spawned && showDebugVisuals)
+                {
+                    Debug.LogWarning($"Failed to spawn enemy after {maxSpawnAttemptsPerEnemy} attempts");
                 }
             }
             
-            yield return new WaitForSeconds(spawnCheckInterval);
+            yield return new WaitForSeconds(0.5f);
         }
     }
 
@@ -219,15 +224,20 @@ public class EnemySpawner : MonoBehaviour
     {
         if (enemyTypes == null || enemyTypes.Count == 0) return null;
         
-        // Корректируем веса на основе количества убийств
+        // Корректируем веса на основе времени игры
         float adjustedTotalWeight = 0f;
         Dictionary<EnemySetting, float> adjustedWeights = new Dictionary<EnemySetting, float>();
+        
+        // Время игры (можно использовать Time.time или количество спавнов)
+        float gameTime = Time.time - initialSpawnDelay;
+        if (gameTime < 0) gameTime = 0;
         
         foreach (var enemyType in enemyTypes)
         {
             if (enemyType.unitPrefab == null) continue;
             
-            float t = Mathf.Clamp01((float)totalKills / killsToReachMax);
+            // Используем время для определения веса (нормализуем от 0 до 1)
+            float t = Mathf.Clamp01(gameTime / 300f); // 5 минут до максимального веса
             float timeMultiplier = enemyType.spawnWeightOverTime.Evaluate(t);
             float adjustedWeight = enemyType.weight * timeMultiplier;
             adjustedWeights[enemyType] = adjustedWeight;
@@ -319,7 +329,7 @@ public class EnemySpawner : MonoBehaviour
         
         if (showDebugVisuals)
         {
-            Debug.Log($"Спавн врага {enemySetting.enemyName} на позиции {position}. Всего врагов: {activeEnemies.Count}/{currentMaxEnemies}");
+            Debug.Log($"Спавн врага {enemySetting.enemyName} на позиции {position}. Всего врагов: {activeEnemies.Count}");
         }
     }
 
@@ -328,15 +338,11 @@ public class EnemySpawner : MonoBehaviour
         if (activeEnemies.Contains(enemy))
         {
             activeEnemies.Remove(enemy);
-            
-            // Увеличиваем максимальное количество врагов при убийстве
-            UpdateMaxEnemiesOnKill();
-            
             onEnemyDied?.Invoke(enemy);
             
             if (showDebugVisuals)
             {
-                Debug.Log($"Враг уничтожен. Всего убийств: {totalKills}, Макс. врагов: {currentMaxEnemies}, Текущих: {activeEnemies.Count}");
+                Debug.Log($"Враг уничтожен. Текущих врагов: {activeEnemies.Count}");
             }
         }
     }
@@ -356,8 +362,10 @@ public class EnemySpawner : MonoBehaviour
         }
         
         activeEnemies.Clear();
-        totalKills = 0;
-        currentMaxEnemies = initialMaxEnemies;
+        
+        // Сбрасываем интервал спауна
+        currentSpawnInterval = initialSpawnInterval;
+        hasStartedSpawning = false;
         
         Debug.Log("All enemies cleared");
     }
@@ -367,15 +375,9 @@ public class EnemySpawner : MonoBehaviour
         OnEnemyDied(enemy);
     }
 
-    public void AddKill()
+    public float GetCurrentSpawnInterval()
     {
-        totalKills++;
-        UpdateMaxEnemiesOnKill();
-    }
-
-    public int GetCurrentMaxEnemies()
-    {
-        return currentMaxEnemies;
+        return currentSpawnInterval;
     }
 
     public int GetCurrentEnemyCount()
@@ -384,14 +386,22 @@ public class EnemySpawner : MonoBehaviour
         return activeEnemies.Count;
     }
 
-    public int GetTotalKills()
-    {
-        return totalKills;
-    }
-
     public void SetSpawnEnabled(bool enabled)
     {
         spawnEnabled = enabled;
+    }
+    
+    public void ResetSpawning()
+    {
+        currentSpawnInterval = initialSpawnInterval;
+        hasStartedSpawning = false;
+        StopAllCoroutines();
+        StartCoroutine(SpawnManager());
+        
+        if (showDebugVisuals)
+        {
+            Debug.Log("Spawning reset!");
+        }
     }
 
     // Визуализация для отладки

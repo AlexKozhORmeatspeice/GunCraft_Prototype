@@ -1,31 +1,49 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class PlayerUI : MonoBehaviour
 {
-    [SerializeField] private Image aimIcon;
     [SerializeField] private ShopScreen shop;
+    [SerializeField] private EnvSpawner envSpawner;
+
+    private bool isOpenedShop;
 
     void Start()
     {
-        OpenShop();
+        isOpenedShop = false;
     }
 
     void Update()
     {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mousePos.z = 0.0f;
-        
-        aimIcon.transform.position = mousePos;
+        if(Input.GetKeyDown(KeyCode.Tab))
+        {
+            isOpenedShop = !isOpenedShop;
+
+            if(isOpenedShop)
+            {
+                envSpawner.CancelAll();
+                shop.SetVisible(true);
+            }
+            else
+            {
+                shop.SetVisible(false);
+            }
+        }
     }
 
     public void OpenShop()
     {
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-        
+        isOpenedShop = true;
         shop.SetVisible(true);
+        envSpawner.CancelAll();
+    }
+
+    public void CloseShop()
+    {
+        isOpenedShop = false;
+        shop.SetVisible(false);
     }
 }

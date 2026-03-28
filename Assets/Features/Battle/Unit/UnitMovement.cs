@@ -102,7 +102,7 @@ public class UnitMovement : MonoBehaviour
         float currentDashSpeed = dashSpeed * curveValue;
         
         // Применяем скорость рывка
-        rb.velocity = dashDirection * currentDashSpeed;
+        rb.linearVelocity = dashDirection * currentDashSpeed;
         
         // Завершаем рывок
         if (t >= 1f)
@@ -129,7 +129,7 @@ public class UnitMovement : MonoBehaviour
         else
         {
             // Плавное движение
-            rb.velocity = Vector2.SmoothDamp(rb.velocity, targetVelocity * moveSpeed, 
+            rb.linearVelocity = Vector2.SmoothDamp(rb.linearVelocity, targetVelocity * moveSpeed, 
                 ref currentVelocity, 
                 targetVelocity.magnitude > 0 ? 1f/acceleration : 1f/deceleration);
         }

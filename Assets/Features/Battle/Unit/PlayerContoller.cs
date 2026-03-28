@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerContoller : MonoBehaviour
+public class PlayerContoller : NetworkBehaviour
 {
     [SerializeField] private UnitMovement unitMovement;
     [SerializeField] private UnitShoot unitShoot;
@@ -16,9 +17,19 @@ public class PlayerContoller : MonoBehaviour
         Cursor.lockState = CursorLockMode.Confined;
     }
 
+    public override void OnNetworkSpawn()
+    {
+        if(IsOwner)
+        {
+            UnitManager.instance.LocalPlayer = GetComponent<Unit>();
+        }
+    }
+
     // Update is called once per frame
     void Update()
     {
+        if(!IsOwner) return;
+
         HandleMovementInput();
         RotatePlayerToMouse();
 
@@ -43,7 +54,7 @@ public class PlayerContoller : MonoBehaviour
             unitMovement.Dash(moveDir);
         }
     }
-
+    
     private void HandleMovementInput()
     {
         moveDir = new Vector2(
@@ -56,6 +67,8 @@ public class PlayerContoller : MonoBehaviour
 
     private void RotatePlayerToMouse()
     {
+        if(Camera.main == null) return;
+        
         Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePosition.z = transform.position.z;
         

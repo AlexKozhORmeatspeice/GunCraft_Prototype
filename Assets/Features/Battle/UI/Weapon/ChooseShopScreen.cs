@@ -1,36 +1,60 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.UI;
 
 public class ChooseShopScreen : MonoBehaviour
 {
+    [Header("Settings")]
+    [SerializeField] private int spawnCount = 2;
+    [SerializeField] private int rerrolCost = 100;
+
+    [Header("Objs")]
     [SerializeField] private ChooseSlot chooseSlotPrefab;
     [SerializeField] private Transform slotContainer;
-    [SerializeField] private Inventory inventory;
     [SerializeField] private InventoryScreen inventoryScreen;
-    [SerializeField] private int spawnCount = 2;
+    [SerializeField] private Inventory inventory;
+    [SerializeField] private TMP_Text rerollText;
 
     private List<ChooseSlot> slots = new();
 
+    private bool isInit;
+
+    void Awake()
+    {
+        isInit = false;
+    }
+
+    void Update()
+    {
+        if(rerollText != null)
+        {
+            rerollText.text = "Реролл (" + rerrolCost + ")";
+        }
+    }
+
     public void Show()
     {
-        Reroll();
+        if(!isInit)
+        {
+            isInit = true;
+            Reroll();
+        }
     }
 
     public void Hide()
     {
-        foreach(var slot in slots)
-        {
-            Destroy(slot.gameObject);
-        }
-
-        slots.Clear();
+        
     }
 
     public void OnReroll()
     {
+        if(CurrencyManager.instance.CurrentRunMoney < rerrolCost) return;
+        CurrencyManager.instance.CurrentRunMoney -= rerrolCost;
+
         Reroll();
     }
 
@@ -49,13 +73,15 @@ public class ChooseShopScreen : MonoBehaviour
 
         slots.Clear();
 
-        var items = inventory.AllItems;
-        var randItems = items.OrderBy(x => x.price).ToList();
+        if(inventory == null) return;
 
-        for(int i = 0; i < items.Count; i++)
+        var items = inventory.AllItems;
+        var randItems = items.OrderBy(x => Random.Range(0.0f, 1.0f)).ToList();
+
+        for(int i = 0; i < spawnCount; i++)
         {
             int ind = i % randItems.Count;
-            Item item = randItems[i];
+            Item item = randItems[ind];
 
             var card = CreateCard(item);
             slots.Add(card);
@@ -68,16 +94,18 @@ public class ChooseShopScreen : MonoBehaviour
         {
             if(slot.GetComponentInChildren<Toggle>().isOn == true)
             {
-                if(CurrencyManager.instance.CurrentMoney < slot.itemData.price)
+                if(CurrencyManager.instance.CurrentRunMoney < slot.itemData.price)
                 {
                     Debug.Log("Недостаточно валюты!");
                     return;
                 }
 
-                CurrencyManager.instance.CurrentMoney -= slot.itemData.price;
+                CurrencyManager.instance.CurrentRunMoney -= slot.itemData.price;
                 
                 inventory.CurrentItems.Add(slot.itemData);
                 inventoryScreen.RefreshInventory();
+
+                Reroll();
                 break;
             }
         }
